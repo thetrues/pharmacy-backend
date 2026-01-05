@@ -17,4 +17,9 @@ class Product extends Model
         'stock',
         'is_active',
     ];
+
+    public function inventories()
+    {
+        return $this->hasMany(Inventory::class);
+    }
 }
