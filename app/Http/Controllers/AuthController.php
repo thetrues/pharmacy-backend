@@ -51,7 +51,7 @@ class AuthController extends Controller
             'role' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:6',
         ]);
     
 

@@ -64,6 +64,8 @@ class RoleAndPermissionSeeder extends Seeder
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
 
+        //admin, manager, pharmacist, cashier, inventory_clerk, auditor, staff
+
         $roles = [
             'admin' => $permissions,
             'manager' => [
