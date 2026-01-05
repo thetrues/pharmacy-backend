@@ -34,7 +34,7 @@ class AuthController extends Controller
             }
             $token = $request->user()->createToken('auth_token')->plainTextToken;
             $user = User::find(Auth::id());
-            $user->assignRole('admin');
+            $user->assignRole($user->role);
             $permissions = $user->getAllPermissions()->pluck('name');
             return response()->json(['message' => 'Logged in', 'user' => $user, 'token' => $token]);
         }
