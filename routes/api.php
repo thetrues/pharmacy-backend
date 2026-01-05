@@ -13,4 +13,7 @@ Route::get('/user', function (Request $request) {
 Route::middleware([CorsMiddleware::class])->group(function () {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+
+//users
+Route::get('/users', [App\Http\Controllers\UserController::class, 'getUsers']);
 });
