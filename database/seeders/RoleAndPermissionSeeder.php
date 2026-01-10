@@ -57,6 +57,8 @@ class RoleAndPermissionSeeder extends Seeder
             'manage taxes',
             'view cashier',
             'manage cashier',
+            'view grns',
+            'manage grns',
 
         ];
 
@@ -106,6 +108,10 @@ class RoleAndPermissionSeeder extends Seeder
                 'view orders',
                 'create orders',
             ],
+            [
+                'view grns',
+                'manage grns',
+            ]
         ];
 
         foreach ($roles as $roleName => $perms) {
