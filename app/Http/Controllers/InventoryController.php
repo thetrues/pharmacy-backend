@@ -4,11 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\Inventory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class InventoryController extends Controller
 {
     public function getInventories(){
         $inventories = Inventory::with('product')->get();
+        //add status based on stock and expiry
+        $inventories->transform(function ($inventory) {
+            if ($inventory->stock <= 0) {
+                $inventory->status = 'out-of-stock';
+            } elseif ($inventory->expiry_date <= now()->addDays(7)) {
+                $inventory->status = 'expiring';
+            } else {
+                $inventory->status = 'in-stock';
+            }
+            return $inventory;
+        });
         return response()->json(['inventories' => $inventories]);
     }
 
@@ -54,22 +66,33 @@ class InventoryController extends Controller
     }
 
     public function createInventory(Request $request){
-        $validated = $request->validate([
-            'product_id' => 'required|integer|exists:products,id',
-            'quantity' => 'required|integer',
-            'SKU' => 'required|string|max:255',
+        $validator = Validator::make($request->all(), [
+            'productId' => 'required|integer|exists:products,id',
             'supplier' => 'required|string|max:255',
-            'batch_number' => 'required|string|max:255',
-            'expiry_date' => 'required|date',
-            'reorder_level' => 'required|integer',
+            'batchNumber' => 'required|string|max:255',
+            'expiryDate' => 'required|date',
+            'reorderLevel' => 'required|integer',
             'stock' => 'required|integer',
-            'cost_price' => 'required|numeric',
-            'selling_price' => 'required|numeric',
-            'is_active' => 'required|boolean',
-            'added_by' => 'required|integer|exists:users,id',
+            'costPrice' => 'required|numeric',
+            'sku' => 'required|string|max:255',
+            'sellingPrice' => 'required|numeric',
         ]);
 
-        $inventory = Inventory::create($validated);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        $inventory = Inventory::create([
+            'product_id' => $request->productId,
+            'supplier' => $request->supplier,
+            'batch_number' => $request->batchNumber,
+            'expiry_date' => $request->expiryDate,
+            'reorder_level' => $request->reorderLevel,
+            'stock' => $request->stock,
+            'quantity' => $request->stock,
+            'cost_price' => $request->costPrice,
+            'selling_price' => $request->sellingPrice,
+            'SKU' => $request->sku,
+        ]);
         return response()->json(['message' => 'Inventory created', 'inventory' => $inventory]);
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Middleware\CorsMiddleware;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\SalesController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
@@ -52,11 +53,22 @@ Route::get('/orders/{id}', [OrderController::class, 'getOrder']);
 Route::get('/orders', [OrderController::class, 'getOrders']);
 Route::get('/orders/today', [OrderController::class, 'todayOrders']);
 
-//cashier shifts
-Route::post('/cashier-shifts/start', [CashierController::class, 'startShift']);
-Route::post('/cashier-shifts/end/{id}', [CashierController::class, 'endShift']);
-Route::get('/cashier-shifts/{id}', [CashierController::class, 'getShift']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    //cashier shifts
+Route::post('/shifts/start', [CashierController::class, 'startShift']);
+Route::post('/shifts/end', [CashierController::class, 'endShift']);
+Route::get('/shifts/current', [CashierController::class, 'getShift']);
+Route::get('/sales', [CashierController::class, 'getSales']);
 Route::post('/cashier/order-payments/{order_id}', [CashierController::class, 'orderPayment']);
+//Sales
+Route::get('/sales/products', [SalesController::class, 'getSalesProducts']);
+Route::post('/sales/create', [SalesController::class, 'saleCreate']);
+Route::get('/sales/report', [SalesController::class, 'getSalesReport']);
+Route::get('/sales/daily', [SalesController::class, 'getDailySales']);
+Route::get('/sales/monthly', [SalesController::class, 'getMonthlySales']);
+});
 
 
 

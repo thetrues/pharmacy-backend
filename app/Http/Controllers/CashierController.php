@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Order\Order;
 use App\Models\CashierShift;
+use App\Models\Sales;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class CashierController extends Controller
@@ -12,54 +14,57 @@ class CashierController extends Controller
     public function startShift(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'cashier_id' => 'required|exists:users,id',
-            'starting_cash' => 'required|numeric|min:0',
+            'startingCash' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $user = Auth::user();
+
         $data = CashierShift::create([
-            'cashier_id' => $request->cashier_id,
-            'starting_cash' => $request->starting_cash,
+            'cashier_id' => $user->id,
+            'starting_cash' => $request->startingCash,
             'status' => 'open',
         ]);
 
         return response()->json(['message' => 'Cashier shift started successfully', 'shift' => $data], 201);
     }
 
-    public function endShift(Request $request, $id)
+    public function endShift(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'ending_cash' => 'required|numeric|min:0',
+            'actualCash' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
-        $shift = CashierShift::find($id);
+        $user = Auth::user();
+        $shift = CashierShift::where('cashier_id', $user->id)->latest()->first();
         if (!$shift || $shift->status !== 'open') {
             return response()->json(['message' => 'Invalid shift ID or shift already closed'], 404);
         }
 
-        $shift->ending_cash = $request->ending_cash;
+        $shift->ending_cash = $request->actualCash;
         $shift->status = 'closed';
-        $shift->ended_at = now();
+         $shift->return_cash = $request->actualCash - $shift->starting_cash;
+         $shift->shift_end = now();
         $shift->save();
 
         return response()->json(['message' => 'Cashier shift ended successfully', 'shift' => $shift], 200);
     }
 
-    public function getShift($id)
+    public function getShift(Request $request)
     {
-        $shift = CashierShift::find($id);
+        $user = Auth::user();
+        $shift = CashierShift::where(['cashier_id' => $user->id, 'status' => 'open'])->latest()->first();
         if (!$shift) {
-            return response()->json(['message' => 'Shift not found'], 404);
+            return response()->json(['message' => 'No active shift found'], 404);
         }
         return response()->json(['shift' => $shift], 200);
-    }
+    }   
 
     public function todayShifts()
     {
@@ -71,6 +76,35 @@ class CashierController extends Controller
     {
         $shifts = CashierShift::all();
         return response()->json(['shifts' => $shifts], 200);
+    }
+
+    public function getSales(){
+        $sales = Sales::with('items')->get();
+
+        $sales = $sales->map(function ($sale) {
+            return [
+                'id' => (int) $sale->id,
+                'orderNumber' => (string) $sale->orderNumber,
+                'customerId' => (int) $sale->customer_id,
+                'customerName' => (string) $sale->customerName,
+                'items' => $sale->items->map(function ($item) {
+                    return [
+                        'name' => $item->product->name,
+                        'id' => (int) $item->product_id,
+                        'quantity' => (int) $item->quantity,
+                        'price' => (float) $item->unitPrice,
+                    ];
+                }),
+                'subtotal' => (float) $sale->subtotalAmount,
+                'tax' => (float) $sale->taxAmount,
+                'total' => (float) $sale->totalAmount,
+                'status' => isset($sale->status) ? (string) $sale->status : 'pending',
+                'createdAt' => $sale->created_at->toDateTimeString(),
+                'paidAt' => $sale->paid_at ? $sale->paid_at->toDateTimeString() : null,
+            ];
+        });
+
+        return response()->json(['orders' => $sales], 200);
     }
 
     public function orderPaymentMethods()
