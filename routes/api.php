@@ -62,6 +62,7 @@ Route::post('/shifts/end', [CashierController::class, 'endShift']);
 Route::get('/shifts/current', [CashierController::class, 'getShift']);
 Route::get('/sales', [CashierController::class, 'getSales']);
 Route::post('/cashier/order-payments/{order_id}', [CashierController::class, 'orderPayment']);
+Route::post('/cashier/sales-payments/{sales_id}', [CashierController::class, 'salesPayment']);
 //Sales
 Route::get('/sales/products', [SalesController::class, 'getSalesProducts']);
 Route::post('/sales/create', [SalesController::class, 'saleCreate']);

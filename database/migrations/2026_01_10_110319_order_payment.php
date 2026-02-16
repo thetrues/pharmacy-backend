@@ -11,17 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
+         /*{"cashAmount":2000,"cardAmount":0,"creditAmount":0,"change":704,"total":1296,"sale_id":1,"order_number":"ORD-20260214-0001","payment_method":"cash"}*/
         Schema::create('order_payments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('order_id');
-            $table->unsignedBigInteger('cashier_id');
+            $table->integer('sales_id');
+            $table->integer('cashier_id');
+            $table->integer('shift_id');
+            $table->string('order_number')->unique();
+            $table->decimal('cash_amount', 10, 2);
+            $table->decimal('card_amount', 10, 2);
+            $table->decimal('credit_amount', 10, 2);
+            $table->decimal('change', 10, 2);
             $table->decimal('total_amount', 10, 2);
             $table->decimal('amount_paid', 10, 2);
             $table->date('payment_date');
             $table->enum('payment_method', ['cash', 'credit', 'card', 'mobile_payment']);
             $table->text('remarks')->nullable();
+            $table->enum('status', ['pending', 'completed', 'failed'])->default('completed');
             $table->timestamps();
-            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
         });
     }
 

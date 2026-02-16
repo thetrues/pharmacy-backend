@@ -119,33 +119,59 @@ class CashierController extends Controller
         return response()->json(['payment_methods' => $methods], 200);
     }
 
-    public function orderPayment(Request $request)
+    public function salesPayment(Request $request)
     {
+        /*{"cashAmount":2000,"cardAmount":0,"creditAmount":0,"change":704,"total":1296,"sale_id":1,"order_number":"ORD-20260214-0001","payment_method":"cash"}*/
         $validator = Validator::make($request->all(), [
-            'order_id' => 'required|exists:orders,id',
+            'sales_id' => 'required|exists:sales,id',
             'payment_method' => 'required|string|in:cash,credit_card,debit_card,mobile_payment,insurance',
-            'amount' => 'required|numeric|min:0',
+            'total' => 'required|numeric|min:0',
+            'cashAmount' => 'required|numeric|min:0',
+            'cardAmount' => 'required|numeric|min:0',
+            'creditAmount' => 'required|numeric|min:0',
+            'change' => 'required|numeric|min:0',
+            'order_number' => 'required|string|exists:sales,orderNumber|unique:order_payments,order_number',
+
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $order = Order::find($request->order_id);
-        if (!$order) {
-            return response()->json(['message' => 'Order not found'], 404);
+        $sales = Sales::find($request->sales_id);
+        if (!$sales) {
+            return response()->json(['message' => 'Sales not found'], 404);
         }
 
+         $user = Auth::user();
+         $shift = CashierShift::where(['cashier_id' => $user->id, 'status' => 'open'])->latest()->first();
+            if (!$shift) {
+                return response()->json(['message' => 'No active shift found for the cashier'], 404);
+            }
+
+        $amountPaid = $request->cashAmount + $request->cardAmount + $request->creditAmount;
+        if ($amountPaid < $request->total) {
+            return response()->json(['message' => 'Amount paid is less than total amount'], 400);
+        }
        
-        $order->payments()->create([
+        $sales->payments()->create([
             'payment_method' => $request->payment_method,
-            'amount_paid' => $request->amount,
+            'cash_amount' => $request->cashAmount,
+            'card_amount' => $request->cardAmount,
+            'credit_amount' => $request->creditAmount,
+            'change' => $request->change,
+            'amount_paid' => $amountPaid,
             'payment_date' => now(),
-            'transaction_reference' => uniqid('txn_'),
             'cashier_id' => $request->user()->id,
-            'total_amount' => $order->total_amount,
+            'total_amount' => $request->total,
+            'shift_id' => $shift->id,
+            'order_number' => $request->order_number,
         ]);
 
-        return response()->json(['message' => 'Payment recorded successfully', 'payment' => $order->payments()->latest()->first()], 200);
+            
+            $sales->status = 'paid';
+            $sales->save();
+
+        return response()->json(['message' => 'Payment recorded successfully', 'payment' => $sales], 200);
     }
 }
