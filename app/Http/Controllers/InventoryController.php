@@ -6,6 +6,8 @@ use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
+use function Laravel\Prompts\error;
+
 class InventoryController extends Controller
 {
     public function getInventories(){
@@ -94,5 +96,50 @@ class InventoryController extends Controller
             'SKU' => $request->sku,
         ]);
         return response()->json(['message' => 'Inventory created', 'inventory' => $inventory]);
+    }
+
+    public function importInventories(Request $request){
+        $validator = Validator::make($request->all(), [
+            'inventories' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $createdInventories = [];
+        foreach ($request->inventories as $inventoryData) {
+            $inventoryValidator = Validator::make($inventoryData, [
+                'product_id' => 'required|integer|exists:products,id',
+                'supplier' => 'required|string|max:255',
+                'batch_number' => 'required|string|max:255',
+                'expiry_date' => 'required|date',
+                'reorder_level' => 'required|integer',
+                'stock' => 'required|integer',
+                'cost_price' => 'required|numeric',
+                'selling_price' => 'required|numeric',
+            ]);
+
+            if ($inventoryValidator->fails()) {
+               return response()->json(['errors' => $inventoryValidator->errors()], 422);
+            }
+
+            $sn = rand(501030, 102044);
+
+            $createdInventories[] = Inventory::create([
+                'product_id' => $inventoryData['product_id'],
+                'supplier' => $inventoryData['supplier'],
+                'batch_number' => $inventoryData['batch_number'],
+                'expiry_date' => $inventoryData['expiry_date'],
+                'reorder_level' => $inventoryData['reorder_level'],
+                'stock' => $inventoryData['stock'],
+                'quantity' => $inventoryData['stock'],
+                'cost_price' => $inventoryData['cost_price'],
+                'selling_price' => $inventoryData['selling_price'],
+                'SKU' => 'SKU-'. $sn,
+            ]);
+        }
+
+        return response()->json(['message' => count($createdInventories) . ' inventories imported', 'inventories' => $createdInventories]);
     }
 }

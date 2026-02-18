@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
@@ -69,5 +70,38 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
         return response()->json(['message' => 'Product created', 'product' => $product]);
+    }
+
+    public function importProducts(Request $request){
+        $validator = Validator::make($request->all(), [
+            'products' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $productsData = $request->input('products');
+        $createdProducts = [];
+        foreach ($productsData as $productData) {
+            $validator = Validator::make($productData, [
+                'name' => 'required|string|max:255',
+                'generic_name' => 'nullable|string',
+                'dosage_type' => 'required|string',
+                'category' => 'required|string',
+                'strength' => 'required|string',
+                'threshold' => 'required|integer',
+                'is_prescription' => 'sometimes|boolean',
+                'stock' => 'sometimes|integer',
+                'is_active' => 'sometimes|boolean',
+            ]);
+
+            if ($validator->fails()) {
+                continue; // Skip invalid product data
+            }
+
+            $createdProducts[] = Product::create($validator->validated());
+        }
+        return response()->json(['message' => 'Products imported', 'products' => $createdProducts]);
     }
 }

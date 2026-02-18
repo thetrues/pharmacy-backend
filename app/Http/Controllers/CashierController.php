@@ -63,7 +63,7 @@ class CashierController extends Controller
         if (!$shift) {
             return response()->json(['message' => 'No active shift found'], 404);
         }
-        return response()->json(['shift' => $shift], 200);
+        return response()->json($shift, 200);
     }   
 
     public function todayShifts()
