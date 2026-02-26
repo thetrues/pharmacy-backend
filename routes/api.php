@@ -1,16 +1,8 @@
 <?php
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\CorsMiddleware;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\SalesController;
-use App\Http\Controllers\CashierController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\InventoryController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -29,8 +21,14 @@ Route::post('/login', [AuthController::class, 'login']);
   include 'apis/sales_api.php';
 //customers
   include 'apis/customers_api.php';
+   Route::middleware('auth:sanctum')->group(function () {
 //procurement
   include 'apis/procurement_api.php';
+
+//suppliers
+ 
+  include 'apis/supplier_api.php';
+  });
 
 
 });

@@ -45,6 +45,8 @@ class CustomerController extends Controller
             'email' => 'sometimes|required|email|max:255|unique:customers,email,' . $id,
             'phone' => 'sometimes|nullable|string|max:20',
             'address' => 'sometimes|nullable|string|max:500',
+            'credit_limit' => 'sometimes|nullable|numeric|min:0',
+            'current_credit' => 'sometimes|nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -63,13 +65,24 @@ class CustomerController extends Controller
             'email' => 'required|email|max:255|unique:customers,email',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'current_credit' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $customer = Customer::create($validator->validated());
+        $currentCredit = $request->input('current_credit', 0);
+
+        $customer = Customer::create([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'phone' => $request->input('phone'),
+            'address' => $request->input('address'),
+            'credit_limit' => $request->input('credit_limit', 0),
+            'current_credit' => $currentCredit,
+        ]);
 
         return response()->json(['message' => 'Customer created successfully', 'customer' => $customer], 201);
     }

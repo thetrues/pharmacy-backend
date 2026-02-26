@@ -15,3 +15,5 @@ Route::get('/customers/{id}', [CustomerController::class, 'getCustomer']);
 Route::delete('/customers/{id}', [CustomerController::class, 'deleteCustomer']);
 Route::put('/customers/{id}', [CustomerController::class, 'updateCustomer']);
 Route::post('/customers/create', [CustomerController::class, 'createCustomer']);
+
+// api/customers, api/customers/{id}, api/customers/create, api/customers/{id} (PUT), api/customers/{id} (DELETE)

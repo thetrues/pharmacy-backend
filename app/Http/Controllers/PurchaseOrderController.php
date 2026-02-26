@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Inventory;
-use Illuminate\Http\Request;
-use App\Models\PurchaseOrder;
 use App\Models\GoodsReceivedNote;
+use App\Models\Inventory;
+use App\Models\PurchaseOrder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class PurchaseOrderController extends Controller
@@ -13,33 +14,41 @@ class PurchaseOrderController extends Controller
     public function createPurchaseOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'supplier_id' => 'required|exists:suppliers,id',
-            'order_date' => 'required|date',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'supplier' => 'required|exists:suppliers,id',
+            'expectedDate' => 'required|date',
+            'products' => 'required|array|min:1',
+            'products.*.product_id' => 'required|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
+            'products.*.cost_price' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $user = Auth::user();
+
+        if(!$user){
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
         $po = PurchaseOrder::create([
-            'supplier_id' => $request->supplier_id,
-            'order_date' => $request->order_date,
-            'total_amount' => collect($request->items)->sum(function ($item) {
-                return $item['quantity'] * $item['unit_price'];
+            'order_date' => now(),
+            'supplier_id' => $request->supplier,
+            'expected_date' => $request->expectedDate,
+            'total_amount' => collect($request->products)->sum(function ($item) {
+                return $item['quantity'] * $item['cost_price'];
             }),
             'status' => 'pending',
+            'created_by' => $user->id,
         ]);
 
-        foreach ($request->items as $item) {
+        foreach ($request->products as $item) {
             $po->items()->create([
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'total_price' => $item['quantity'] * $item['unit_price'],
+                'unit_price' => $item['cost_price'],
+                'total_price' => $item['quantity'] * $item['cost_price'],
             ]);
         }
 

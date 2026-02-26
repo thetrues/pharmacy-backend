@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sales;
 use App\Models\Inventory;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -12,10 +13,22 @@ class SalesController extends Controller
 {
 
    public function getSalesProducts(){
-     $inventories = Inventory::with('product')->get();
+    // $inventories = Inventory::with('product')->get();
 
      // { id: "1", name: "Paracetamol 500mg", genericName: "Acetaminophen", price: 5.00, stock: 245, category: "Pain Relief" },
-     $products = $inventories->map(function ($inventory) {
+
+    $products = Product::where('is_active', true)->get(['id', 'name', 'generic_name', 'category'])->map(function ($product) {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'genericName' => $product->generic_name,
+            'category' => $product->category,
+            'price' => $product->inventories->last() ? (float) $product->inventories->last()->selling_price : 0,
+            'stock' => $product->inventories->last() ? $product->inventories->last()->stock : 0,
+        ];
+    });
+
+     /*$products = $inventories->map(function ($inventory) {
          return [
              'id' => $inventory->product_id,
              'name' => $inventory->product->name,
@@ -24,7 +37,7 @@ class SalesController extends Controller
              'stock' => $inventory->stock,
              'category' => $inventory->product->category,
          ];
-     });
+     });*/
      return response()->json(['products' => $products]);
    }
 
