@@ -1,8 +1,9 @@
 <?php
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\SalesController;
 use App\Http\Controllers\CashierController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SalesController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
     //cashier shifts
@@ -24,4 +25,8 @@ Route::post('/orders/create', [OrderController::class, 'createOrder']);
 Route::get('/orders/{id}', [OrderController::class, 'getOrder']);
 Route::get('/orders', [OrderController::class, 'getOrders']);
 Route::get('/orders/today', [OrderController::class, 'todayOrders']);
+
+//dashboard
+
 });
+Route::get('/dashboard/summary', [ProductController::class, 'getDashboardProducts']);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -103,5 +104,51 @@ class ProductController extends Controller
             $createdProducts[] = Product::create($validator->validated());
         }
         return response()->json(['message' => 'Products imported', 'products' => $createdProducts]);
+    }
+
+    //for dashboard all products with today's sales amount, total sales, products in stock, active products, resent sales, and low stock products
+    public function getDashboardProducts(){
+        $products = Product::with('inventories')->get()->map(function ($product) {
+            $lastInventory = $product->inventories->sortByDesc('id')->first();
+            $product->price = $lastInventory ? (float) $lastInventory->price : 0;
+            $product->total_sales = $product->sales()->sum('quantity');
+            $product->revenue = $product->sales()->sum(DB::raw('quantity * unitPrice'));
+            return $product;
+        });
+        $totalProducts = $products->count();
+        $productsInStock = $products->filter(function ($product) {
+            return $product->inventories->sum('stock') > 0;
+        })->count();
+        $activeProducts = $products->filter(function ($product) {
+            return $product->is_active;
+        })->count();  
+
+        $requestedProducts = $products->filter(function ($product) {
+            return $product->sales()->whereDate('created_at', now()->toDateString())->exists();
+        });
+
+        $lowStockProducts = $products->filter(function ($product) {
+            return $product->inventories->sum('stock') < $product->threshold;
+        });
+
+        //today sales amount
+        $todaySalesAmount = $products->sum(function ($product) {
+            return $product->sales()->whereDate('created_at', now()->toDateString())->sum(DB::raw('quantity * unitPrice'));
+        }); 
+
+         //total sales amount
+         $totalSalesAmount = $products->sum(function ($product) {
+            return $product->sales()->sum(DB::raw('quantity * unitPrice'));
+        });
+
+        return response()->json([
+            'today_sales_amount' => $todaySalesAmount,
+            'total_sales_amount' => $totalSalesAmount,
+            'total_products' => $totalProducts,
+            'products_in_stock' => $productsInStock,
+            'active_products' => $activeProducts,
+            'recent_sales' => $requestedProducts,
+            'low_stock_products' => $lowStockProducts
+        ]);
     }
 }
