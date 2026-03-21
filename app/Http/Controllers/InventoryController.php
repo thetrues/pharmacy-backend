@@ -103,6 +103,7 @@ class InventoryController extends Controller
             'inventories' => 'required|array',
         ]);
 
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
@@ -112,25 +113,42 @@ class InventoryController extends Controller
             $inventoryValidator = Validator::make($inventoryData, [
                 'product_id' => 'required|integer|exists:products,id',
                 'supplier' => 'required|string|max:255',
-                'batch_number' => 'required|string|max:255',
-                'expiry_date' => 'required|date',
+                //'batch_number' => 'required|string|max:255',
+                //'expiry_date' => 'required',
                 'reorder_level' => 'required|integer',
                 'stock' => 'required|integer',
                 'cost_price' => 'required|numeric',
                 'selling_price' => 'required|numeric',
             ]);
 
+           
+         
             if ($inventoryValidator->fails()) {
                return response()->json(['errors' => $inventoryValidator->errors()], 422);
             }
+             if($inventoryData['expiry_date']){
+                $excelDate = $inventoryData['expiry_date'];
+                $unixDate = ($excelDate - 25569) * 86400;
+                $date = gmdate("Y-m-d", $unixDate);
+            }else{
+                //add year to current date
+                $date = now()->addYear()->format("Y-m-d");
+            }
+
+            if($inventoryData['batch_number']){
+                $batchNumber =$inventoryData['batch_number'];
+            }else{
+                $batchNumber = 'BATCH-'. rand(100000, 999999);
+            }
+
 
             $sn = rand(501030, 102044);
 
             $createdInventories[] = Inventory::create([
                 'product_id' => $inventoryData['product_id'],
                 'supplier' => $inventoryData['supplier'],
-                'batch_number' => $inventoryData['batch_number'],
-                'expiry_date' => $inventoryData['expiry_date'],
+                'batch_number' => $batchNumber,
+                'expiry_date' => $date,
                 'reorder_level' => $inventoryData['reorder_level'],
                 'stock' => $inventoryData['stock'],
                 'quantity' => $inventoryData['stock'],

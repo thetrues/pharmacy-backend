@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order\Order;
 use App\Models\CashierShift;
+use App\Models\Inventory;
 use App\Models\Sales;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,7 @@ class CashierController extends Controller
         $user = Auth::user();
 
         $data = CashierShift::create([
+            'shift_start' => now(),
             'cashier_id' => $user->id,
             'starting_cash' => $request->startingCash,
             'status' => 'open',
@@ -167,10 +169,21 @@ class CashierController extends Controller
             'shift_id' => $shift->id,
             'order_number' => $request->order_number,
         ]);
+         $sales->status = 'paid';
+         $sales->save();
 
-            
-            $sales->status = 'paid';
-            $sales->save();
+         //get items in the sale and reduce stock where expire date is greater is neart than now and stock is greater than 0
+         foreach ($sales->items as $item) {
+            $inventory = Inventory::where('product_id', $item->product_id)
+                ->where('expiry_date', '>', now())
+                ->where('stock', '>', 0)
+                ->orderBy('expiry_date', 'asc')
+                ->first();
+            if ($inventory) {
+                $inventory->stock -= $item->quantity;
+                $inventory->save();
+            }
+         }
 
         return response()->json(['message' => 'Payment recorded successfully', 'payment' => $sales], 200);
     }
