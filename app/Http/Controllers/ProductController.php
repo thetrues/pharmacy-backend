@@ -84,13 +84,14 @@ class ProductController extends Controller
 
         $productsData = $request->input('products');
         $createdProducts = [];
+        $failedProducts = [];
         foreach ($productsData as $productData) {
             $validator = Validator::make($productData, [
                 'name' => 'required|string|max:255',
                 'generic_name' => 'nullable|string',
                 'dosage_type' => 'required|string',
-                'category' => 'required|string',
-                'strength' => 'required|string',
+                'category' => 'required',
+                'strength' => 'required',
                 'threshold' => 'required|integer',
                 'is_prescription' => 'sometimes|boolean',
                 'stock' => 'sometimes|integer',
@@ -98,12 +99,17 @@ class ProductController extends Controller
             ]);
 
             if ($validator->fails()) {
+                $failedProducts[] = ['data' => $productData, 'errors' => $validator->errors()];
                 continue; // Skip invalid product data
             }
-
-            $createdProducts[] = Product::create($validator->validated());
+                //create or update product based on name and category
+            $product = Product::updateOrCreate(
+                ['name' => $validator->validated()['name'], 'category' => $validator->validated()['category']],
+                $validator->validated()
+            );
+            $createdProducts[] = $product;
         }
-        return response()->json(['message' => 'Products imported', 'products' => $createdProducts]);
+        return response()->json(['message' => 'Products imported', 'products' => $createdProducts, 'imported_count' => count($createdProducts), 'failed_count' => count($productsData) - count($createdProducts), 'failed_products' => $failedProducts]);
     }
 
     //for dashboard all products with today's sales amount, total sales, products in stock, active products, resent sales, and low stock products
