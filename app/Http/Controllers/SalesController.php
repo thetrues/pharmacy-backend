@@ -12,12 +12,21 @@ use Illuminate\Support\Facades\Validator;
 class SalesController extends Controller
 {
 
-   public function getSalesProducts(){
-    // $inventories = Inventory::with('product')->get();
-
-     // { id: "1", name: "Paracetamol 500mg", genericName: "Acetaminophen", price: 5.00, stock: 245, category: "Pain Relief" },
-
-    $products = Product::where('is_active', true)->get(['id', 'name', 'generic_name', 'category'])->map(function ($product) {
+   public function getSalesProducts(Request $request){
+    $perPage = $request->get('per_page', 15);
+    $search = $request->get('search', '');
+    
+    $query = Product::where('is_active', true);
+    
+    if ($search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', '%' . $search . '%')
+              ->orWhere('generic_name', 'like', '%' . $search . '%')
+              ->orWhere('category', 'like', '%' . $search . '%');
+        });
+    }
+    
+    $products = $query->get(['id', 'name', 'generic_name', 'category'])->map(function ($product) {
         // get all inventories for the product and get the last one with stock greater than 0 and expiry date greater than now
          $totalStock = Inventory::where('product_id', $product->id)
            // ->where('expiry_date', '>', now())
@@ -37,17 +46,17 @@ class SalesController extends Controller
         return $product['stock'] > 0;
     })->values();
 
-     /*$products = $inventories->map(function ($inventory) {
-         return [
-             'id' => $inventory->product_id,
-             'name' => $inventory->product->name,
-             'genericName' => $inventory->product->generic_name,
-             'price' => $inventory->selling_price,
-             'stock' => $inventory->stock,
-             'category' => $inventory->product->category,
-         ];
-     });*/
-     return response()->json(['products' => $products]);
+    $page = request('page', 1);
+    $paginated = collect($products)->forPage($page, $perPage);
+    $totalPages = ceil($products->count() / $perPage);
+
+     return response()->json([
+        'products' => $paginated,
+        'total_pages' => $totalPages,
+        'current_page' => $page,
+        'next' => $page < $totalPages ? $page + 1 : null,
+        'previous' => $page > 1 ? $page - 1 : null,
+     ]);
    }
 
    public function saleCreate(Request $request){

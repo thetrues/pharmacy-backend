@@ -29,4 +29,5 @@ Route::get('/orders/today', [OrderController::class, 'todayOrders']);
 //dashboard
 
 });
+Route::get('/sales/products', [SalesController::class, 'getSalesProducts']);
 Route::get('/dashboard/summary', [ProductController::class, 'getDashboardProducts']);

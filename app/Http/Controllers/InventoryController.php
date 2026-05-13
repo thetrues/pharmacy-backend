@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Inventory;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -110,6 +111,10 @@ class InventoryController extends Controller
 
         $createdInventories = [];
         foreach ($request->inventories as $inventoryData) {
+            $product = Product::find($inventoryData['product_id']);
+            if(!$product){
+                return response()->json(['message' => 'Product with ID ' . $inventoryData['product_id'] . ' not found'], 404);
+            }
             $inventoryValidator = Validator::make($inventoryData, [
                 'product_id' => 'required|integer|exists:products,id',
                 'supplier' => 'required|string|max:255',
@@ -138,11 +143,11 @@ class InventoryController extends Controller
             if($inventoryData['batch_number']){
                 $batchNumber =$inventoryData['batch_number'];
             }else{
-                $batchNumber = 'BATCH-'. rand(100000, 999999);
+                $batchNumber = 'BATCH-'. rand(100000000, 999999999);
             }
 
 
-            $sn = rand(501030, 102044);
+            $sn = rand(5010300000, 1020440000);
 
             $createdInventories[] = Inventory::create([
                 'product_id' => $inventoryData['product_id'],
