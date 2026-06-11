@@ -12,7 +12,32 @@ use Illuminate\Support\Facades\Validator;
 class SalesController extends Controller
 {
 
-   public function getSalesProducts(Request $request){
+
+    public function getSalesProducts(){
+        $products = Product::where('is_active', true)->get()->map(function ($product) {
+            // get all inventories for the product and get the last one with stock greater than 0 and expiry date greater than now
+             $totalStock = Inventory::where('product_id', $product->id)
+               // ->where('expiry_date', '>', now())
+                ->sum('stock');
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'genericName' => $product->generic_name,
+                'category' => $product->category,
+                'price' => $product->inventories->last() ? (float) $product->inventories->last()->selling_price : 0,
+                'stock' => $totalStock,
+            ];
+        });
+
+        //all products where stock is greater than 0 and is active
+        $products = $products->filter(function ($product) {
+            return $product['stock'] > 0;
+        })->values();
+
+         return response()->json(['products' => $products]);
+    }
+
+   public function getSalesProducts1(Request $request){
     $perPage = $request->get('per_page', 15);
     $search = $request->get('search', '');
     

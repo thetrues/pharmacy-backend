@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order\Order;
 use App\Models\CashierShift;
 use App\Models\Inventory;
+use App\Models\Order\OrderPayment;
 use App\Models\Sales;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -65,7 +66,11 @@ class CashierController extends Controller
         if (!$shift) {
             return response()->json(['message' => 'No active shift found'], 404);
         }
-        return response()->json($shift, 200);
+
+        $totalSalesOnShift = OrderPayment::where('shift_id', $shift->id)->sum('amount_paid');
+        $payments = OrderPayment::where('shift_id', $shift->id)->get();
+
+        return response()->json(['shift' => $shift, 'totalSalesOnShift' => $totalSalesOnShift, 'payments' => $payments], 200);
     }   
 
     public function todayShifts()
